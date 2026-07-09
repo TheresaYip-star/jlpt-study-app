@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // so we don't let them block a deployment.
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  webpack: (config) => {
+    config.output.hashFunction = "sha256";
+    return config;
+  },
 };
 
 export default nextConfig;
