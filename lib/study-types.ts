@@ -3,6 +3,7 @@ export type Vocabulary = {
   level_code: string;
   word: string;
   reading: string;
+  romaji: string | null;
   meaning: string;
   part_of_speech: string | null;
   notes: string | null;

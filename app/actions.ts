@@ -28,6 +28,7 @@ export async function saveVocabulary(formData: FormData): Promise<ActionResult<{
     level_code: "N5",
     word: String(formData.get("word") ?? "").trim(),
     reading: String(formData.get("reading") ?? "").trim(),
+    romaji: String(formData.get("romaji") ?? "").trim() || null,
     meaning: String(formData.get("meaning") ?? "").trim(),
     part_of_speech: String(formData.get("part_of_speech") ?? "").trim() || null,
     notes: String(formData.get("notes") ?? "").trim() || null,

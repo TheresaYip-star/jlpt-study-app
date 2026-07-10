@@ -13,6 +13,7 @@ const emptyForm = {
   id: "",
   word: "",
   reading: "",
+  romaji: "",
   meaning: "",
   part_of_speech: "",
   notes: "",
@@ -23,6 +24,7 @@ export function VocabularyBrowser({ words, examples }: Props) {
   const [selected, setSelected] = useState<Vocabulary | null>(words[0] ?? null);
   const [form, setForm] = useState(emptyForm);
   const [showFurigana, setShowFurigana] = useState(true);
+  const [showRomaji, setShowRomaji] = useState(false);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -30,7 +32,7 @@ export function VocabularyBrowser({ words, examples }: Props) {
     const needle = query.trim().toLowerCase();
     if (!needle) return words;
     return words.filter((word) =>
-      [word.word, word.reading, word.meaning, word.part_of_speech ?? ""]
+      [word.word, word.reading, word.romaji ?? "", word.meaning, word.part_of_speech ?? ""]
         .join(" ")
         .toLowerCase()
         .includes(needle),
@@ -45,6 +47,7 @@ export function VocabularyBrowser({ words, examples }: Props) {
       id: word.id,
       word: word.word,
       reading: word.reading,
+      romaji: word.romaji ?? "",
       meaning: word.meaning,
       part_of_speech: word.part_of_speech ?? "",
       notes: word.notes ?? "",
@@ -74,12 +77,12 @@ export function VocabularyBrowser({ words, examples }: Props) {
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
       <section className="space-y-4">
-        <div className="panel grid gap-3 md:grid-cols-[1fr_auto]">
+        <div className="panel grid gap-3 md:grid-cols-[1fr_auto_auto]">
           <input
             className="input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by word, reading, meaning..."
+            placeholder="Search by word, reading, romaji, meaning..."
           />
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input
@@ -88,6 +91,14 @@ export function VocabularyBrowser({ words, examples }: Props) {
               type="checkbox"
             />
             Show reading
+          </label>
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              checked={showRomaji}
+              onChange={(event) => setShowRomaji(event.target.checked)}
+              type="checkbox"
+            />
+            Show romaji
           </label>
         </div>
 
@@ -115,7 +126,14 @@ export function VocabularyBrowser({ words, examples }: Props) {
                 onClick={() => setSelected(word)}
               >
                 <span className="block text-3xl font-bold">{word.word}</span>
-                {showFurigana ? <span className="text-slate-500">{word.reading}</span> : null}
+                {showFurigana ? (
+                  <>
+                    <span className="block text-slate-500">{word.reading}</span>
+                    {showRomaji && word.romaji ? (
+                      <span className="block text-sm text-slate-500">{word.romaji}</span>
+                    ) : null}
+                  </>
+                ) : null}
                 <span className="mt-3 block font-semibold">{word.meaning}</span>
                 <span className="text-sm text-slate-500">{word.part_of_speech}</span>
               </button>
@@ -132,6 +150,9 @@ export function VocabularyBrowser({ words, examples }: Props) {
               <div>
                 <div className="text-4xl font-black">{selected.word}</div>
                 <div className="text-slate-500">{selected.reading}</div>
+                {showRomaji && selected.romaji ? (
+                  <div className="text-sm text-slate-500">{selected.romaji}</div>
+                ) : null}
               </div>
               <p className="text-lg font-semibold">{selected.meaning}</p>
               <p className="text-sm text-slate-500">{selected.part_of_speech}</p>
@@ -167,7 +188,7 @@ export function VocabularyBrowser({ words, examples }: Props) {
         <form action={submit} className="panel space-y-3">
           <h2 className="text-xl font-bold">{form.id ? "Edit word" : "Add word"}</h2>
           <input name="id" type="hidden" value={form.id} />
-          {(["word", "reading", "meaning", "part_of_speech"] as const).map((field) => (
+          {(["word", "reading", "romaji", "meaning", "part_of_speech"] as const).map((field) => (
             <input
               className="input"
               key={field}

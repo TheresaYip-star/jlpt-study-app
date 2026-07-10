@@ -15,7 +15,7 @@ export async function getVocabulary(): Promise<Vocabulary[]> {
 
   const { data, error } = await supabase
     .from("vocabulary")
-    .select("id, level_code, word, reading, meaning, part_of_speech, notes")
+    .select("id, level_code, word, reading, romaji, meaning, part_of_speech, notes")
     .eq("level_code", "N5")
     .order("created_at", { ascending: true });
 

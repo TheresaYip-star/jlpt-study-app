@@ -16,6 +16,7 @@ export function FlashcardEngine({ words }: Props) {
   const [known, setKnown] = useState(0);
   const [unknown, setUnknown] = useState(0);
   const [startTime, setStartTime] = useState(Date.now());
+  const [showRomaji, setShowRomaji] = useState(false);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -122,6 +123,14 @@ export function FlashcardEngine({ words }: Props) {
           Known {known} · Review {unknown}
         </span>
       </div>
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+        <input
+          checked={showRomaji}
+          onChange={(event) => setShowRomaji(event.target.checked)}
+          type="checkbox"
+        />
+        Show romaji
+      </label>
       <button
         className="panel min-h-80 w-full cursor-pointer text-center shadow-sm transition hover:border-blue-300"
         onClick={() => setFlipped((value) => !value)}
@@ -134,6 +143,9 @@ export function FlashcardEngine({ words }: Props) {
         ) : (
           <span className="block">
             <span className="block text-4xl font-black">{current.reading}</span>
+            {showRomaji && current.romaji ? (
+              <span className="mt-1 block text-lg text-slate-500">{current.romaji}</span>
+            ) : null}
             <span className="mt-4 block text-2xl font-bold">{current.meaning}</span>
             <span className="mt-2 block text-slate-500">{current.part_of_speech}</span>
           </span>
