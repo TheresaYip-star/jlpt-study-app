@@ -13,3 +13,5 @@ next-env.d.ts
 .pnpm-store/
 .toolhome/
 build-output.log
+
+.env*
