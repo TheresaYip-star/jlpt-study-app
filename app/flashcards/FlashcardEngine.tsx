@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { recordFlashcardReview, startFlashcardSession } from "@/app/actions";
 import type { Vocabulary } from "@/lib/study-types";
 
@@ -20,6 +20,8 @@ export function FlashcardEngine({ words }: Props) {
   const [markedUnknown, setMarkedUnknown] = useState(false);
   const [message, setMessage] = useState("");
   const [lastUpdate, setLastUpdate] = useState("");
+  const [savingResult, setSavingResult] = useState<"known" | "unknown" | null>(null);
+  const submissionLocked = useRef(false);
   const [isPending, startTransition] = useTransition();
 
   const deck = useMemo(() => words.slice(0, 10), [words]);
@@ -46,9 +48,13 @@ export function FlashcardEngine({ words }: Props) {
   }
 
   function answer(result: "known" | "unknown") {
-    if (!current || !sessionId) return;
+    if (!current || !sessionId || submissionLocked.current) return;
+    if (result === "unknown" && markedUnknown) return;
+
+    submissionLocked.current = true;
+    setSavingResult(result);
     setMessage("");
-    startTransition(async () => {
+    void (async () => {
       const saved = await recordFlashcardReview({
         sessionId,
         vocabularyId: current.id,
@@ -57,6 +63,8 @@ export function FlashcardEngine({ words }: Props) {
       });
       if (!saved.ok) {
         setMessage(saved.error);
+        submissionLocked.current = false;
+        setSavingResult(null);
         return;
       }
       setKnown(saved.data.known);
@@ -68,6 +76,8 @@ export function FlashcardEngine({ words }: Props) {
         setIndex((value) => value + 1);
         setFlipped(false);
         setMarkedUnknown(false);
+        setSavingResult(null);
+        submissionLocked.current = false;
         return;
       }
 
@@ -75,7 +85,9 @@ export function FlashcardEngine({ words }: Props) {
       setLastUpdate(
         "Flip the card as many times as you need. Press Know when you have mastered this word.",
       );
-    });
+      setSavingResult(null);
+      submissionLocked.current = false;
+    })();
   }
 
   if (words.length === 0) {
@@ -169,15 +181,20 @@ export function FlashcardEngine({ words }: Props) {
       <div className="grid gap-3 sm:grid-cols-2">
         <button
           className="button danger"
-          disabled={isPending || markedUnknown}
+          disabled={savingResult !== null || markedUnknown}
           onClick={() => answer("unknown")}
         >
           Don&apos;t Know
         </button>
-        <button className="button" disabled={isPending} onClick={() => answer("known")}>
+        <button className="button" disabled={savingResult !== null} onClick={() => answer("known")}>
           Know
         </button>
       </div>
+      {savingResult === "known" ? (
+        <p aria-live="polite" className="text-sm font-semibold text-slate-600">
+          Loading next card...
+        </p>
+      ) : null}
       {lastUpdate ? (
         <p aria-live="polite" className="text-sm font-semibold text-slate-600">
           {lastUpdate}

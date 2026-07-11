@@ -101,6 +101,37 @@ export async function recordFlashcardReview(input: {
   const supabase = await getSupabase();
   if (!supabase) return { ok: false, error: "Supabase is not configured." };
 
+  // Retries for the same answer return the persisted result without incrementing twice.
+  const { data: existing, error: existingError } = await supabase
+    .from("review_history")
+    .select("interval_days, repetition_count")
+    .eq("session_id", input.sessionId)
+    .eq("vocabulary_id", input.vocabularyId)
+    .eq("result", input.result)
+    .limit(1)
+    .maybeSingle();
+  if (existingError) return { ok: false, error: existingError.message };
+
+  if (existing) {
+    const { data: session, error: sessionError } = await supabase
+      .from("study_sessions")
+      .select("cards_reviewed, cards_known, cards_unknown")
+      .eq("id", input.sessionId)
+      .single();
+    if (sessionError) return { ok: false, error: sessionError.message };
+
+    return {
+      ok: true,
+      data: {
+        reviewed: Number(session.cards_reviewed ?? 0),
+        known: Number(session.cards_known ?? 0),
+        unknown: Number(session.cards_unknown ?? 0),
+        intervalDays: Number(existing.interval_days),
+        repetitionCount: Number(existing.repetition_count),
+      },
+    };
+  }
+
   const { data: previous } = await supabase
     .from("review_history")
     .select("interval_days, ease_factor, repetition_count")
