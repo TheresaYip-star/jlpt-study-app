@@ -19,7 +19,6 @@ export function FlashcardEngine({ words }: Props) {
   const [showRomaji, setShowRomaji] = useState(false);
   const [markedUnknown, setMarkedUnknown] = useState(false);
   const [message, setMessage] = useState("");
-  const [lastUpdate, setLastUpdate] = useState("");
   const [savingResult, setSavingResult] = useState<"known" | "unknown" | null>(null);
   const submissionLocked = useRef(false);
   const [isPending, startTransition] = useTransition();
@@ -70,9 +69,6 @@ export function FlashcardEngine({ words }: Props) {
       setKnown(saved.data.known);
       setUnknown(saved.data.unknown);
       if (result === "known") {
-        setLastUpdate(
-          `Mastery increased · next review in ${saved.data.intervalDays} day${saved.data.intervalDays === 1 ? "" : "s"}`,
-        );
         setIndex((value) => value + 1);
         setFlipped(false);
         setMarkedUnknown(false);
@@ -82,9 +78,6 @@ export function FlashcardEngine({ words }: Props) {
       }
 
       setMarkedUnknown(true);
-      setLastUpdate(
-        "Flip the card as many times as you need. Press Know when you have mastered this word.",
-      );
       setSavingResult(null);
       submissionLocked.current = false;
     })();
@@ -190,14 +183,12 @@ export function FlashcardEngine({ words }: Props) {
           Know
         </button>
       </div>
+      <p className="text-sm font-semibold text-slate-600">
+        Click &quot;Know&quot; to move to the next word.
+      </p>
       {savingResult === "known" ? (
         <p aria-live="polite" className="text-sm font-semibold text-slate-600">
           Loading next card...
-        </p>
-      ) : null}
-      {lastUpdate ? (
-        <p aria-live="polite" className="text-sm font-semibold text-slate-600">
-          {lastUpdate}
         </p>
       ) : null}
       {message ? <p className="font-semibold text-red-600">{message}</p> : null}
