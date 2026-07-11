@@ -10,6 +10,7 @@ type Question = {
   reading: string;
   correct: string;
   choices: string[];
+  explanation: string | null;
 };
 
 type Answer = {
@@ -36,6 +37,7 @@ function buildQuestions(words: Vocabulary[]): Question[] {
       reading: word.reading,
       correct: word.meaning,
       choices: shuffle([word.meaning, ...distractors]),
+      explanation: word.notes,
     };
   });
 }
@@ -94,6 +96,11 @@ export function QuizEngine({ words }: { words: Vocabulary[] }) {
       }
       setSavedScore(result.data.scorePercent);
     });
+  }
+
+  function selectAnswer(choice: string) {
+    if (selected || isPending) return;
+    setSelected(choice);
   }
 
   if (words.length < 4) {
@@ -157,24 +164,54 @@ export function QuizEngine({ words }: { words: Vocabulary[] }) {
         <p className="text-slate-500">{current.reading}</p>
       </div>
       <div className="grid gap-3">
-        {current.choices.map((choice) => (
-          <label
-            className={`cursor-pointer rounded-lg border p-3 font-semibold ${
-              selected === choice ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white"
-            }`}
-            key={choice}
-          >
-            <input
-              checked={selected === choice}
-              className="mr-2"
-              name="choice"
-              onChange={() => setSelected(choice)}
-              type="radio"
-            />
-            {choice}
-          </label>
-        ))}
+        {current.choices.map((choice) => {
+          const isCorrectChoice = choice === current.correct;
+          const isWrongSelection = selected === choice && !isCorrectChoice;
+          const choiceState = selected
+            ? isCorrectChoice
+              ? "border-green-600 bg-green-50 text-green-900"
+              : isWrongSelection
+                ? "border-red-600 bg-red-50 text-red-900"
+                : "border-slate-200 bg-slate-50 text-slate-500"
+            : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50";
+
+          return (
+            <label
+              className={`rounded-lg border p-3 font-semibold transition-colors ${choiceState} ${
+                selected ? "cursor-default" : "cursor-pointer"
+              }`}
+              key={choice}
+            >
+              <input
+                checked={selected === choice}
+                className="mr-2"
+                disabled={Boolean(selected) || isPending}
+                name="choice"
+                onChange={() => selectAnswer(choice)}
+                type="radio"
+              />
+              {choice}
+              {selected && isCorrectChoice ? <span className="float-right">Correct</span> : null}
+              {isWrongSelection ? <span className="float-right">Incorrect</span> : null}
+            </label>
+          );
+        })}
       </div>
+      {selected ? (
+        <div
+          aria-live="polite"
+          className={`rounded-lg border p-4 ${
+            selected === current.correct
+              ? "border-green-200 bg-green-50 text-green-900"
+              : "border-red-200 bg-red-50 text-red-900"
+          }`}
+        >
+          <p className="font-bold">
+            {selected === current.correct ? "That’s correct!" : `Correct answer: ${current.correct}`}
+          </p>
+          {current.explanation ? <p className="mt-1 text-sm">{current.explanation}</p> : null}
+        </div>
+      ) : null}
       <button className="button" disabled={!selected || isPending} onClick={next}>
         {questionIndex + 1 === questions.length ? "Submit quiz" : "Next"}
       </button>

@@ -18,6 +18,7 @@ export function FlashcardEngine({ words }: Props) {
   const [startTime, setStartTime] = useState(Date.now());
   const [showRomaji, setShowRomaji] = useState(false);
   const [message, setMessage] = useState("");
+  const [lastUpdate, setLastUpdate] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const deck = useMemo(() => words.slice(0, 10), [words]);
@@ -58,6 +59,11 @@ export function FlashcardEngine({ words }: Props) {
       }
       setKnown(saved.data.known);
       setUnknown(saved.data.unknown);
+      setLastUpdate(
+        result === "known"
+          ? `Mastery increased · next review in ${saved.data.intervalDays} day${saved.data.intervalDays === 1 ? "" : "s"}`
+          : "Mastery adjusted · scheduled for review again tomorrow",
+      );
       setIndex((value) => value + 1);
       setFlipped(false);
     });
@@ -152,13 +158,18 @@ export function FlashcardEngine({ words }: Props) {
         )}
       </button>
       <div className="grid gap-3 sm:grid-cols-2">
-        <button className="button secondary" disabled={isPending} onClick={() => answer("unknown")}>
+        <button className="button danger" disabled={isPending} onClick={() => answer("unknown")}>
           Don&apos;t Know
         </button>
         <button className="button" disabled={isPending} onClick={() => answer("known")}>
           Know
         </button>
       </div>
+      {lastUpdate ? (
+        <p aria-live="polite" className="text-sm font-semibold text-slate-600">
+          {lastUpdate}
+        </p>
+      ) : null}
       {message ? <p className="font-semibold text-red-600">{message}</p> : null}
     </section>
   );

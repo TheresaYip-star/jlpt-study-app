@@ -91,7 +91,13 @@ export async function recordFlashcardReview(input: {
   vocabularyId: string;
   result: "known" | "unknown";
   durationSeconds: number;
-}): Promise<ActionResult<{ reviewed: number; known: number; unknown: number }>> {
+}): Promise<ActionResult<{
+  reviewed: number;
+  known: number;
+  unknown: number;
+  intervalDays: number;
+  repetitionCount: number;
+}>> {
   const supabase = await getSupabase();
   if (!supabase) return { ok: false, error: "Supabase is not configured." };
 
@@ -158,6 +164,8 @@ export async function recordFlashcardReview(input: {
       reviewed: nextCounts.cards_reviewed,
       known: nextCounts.cards_known,
       unknown: nextCounts.cards_unknown,
+      intervalDays: interval,
+      repetitionCount,
     },
   };
 }
