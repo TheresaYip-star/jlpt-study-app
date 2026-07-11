@@ -59,13 +59,16 @@ export function FlashcardEngine({ words }: Props) {
       }
       setKnown(saved.data.known);
       setUnknown(saved.data.unknown);
-      setLastUpdate(
-        result === "known"
-          ? `Mastery increased · next review in ${saved.data.intervalDays} day${saved.data.intervalDays === 1 ? "" : "s"}`
-          : "Mastery adjusted · scheduled for review again tomorrow",
-      );
-      setIndex((value) => value + 1);
-      setFlipped(false);
+      if (result === "known") {
+        setLastUpdate(
+          `Mastery increased · next review in ${saved.data.intervalDays} day${saved.data.intervalDays === 1 ? "" : "s"}`,
+        );
+        setIndex((value) => value + 1);
+        setFlipped(false);
+        return;
+      }
+
+      setLastUpdate("Keep reviewing this card. Click Know when you're ready to continue.");
     });
   }
 
