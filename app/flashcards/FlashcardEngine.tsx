@@ -17,6 +17,7 @@ export function FlashcardEngine({ words }: Props) {
   const [unknown, setUnknown] = useState(0);
   const [startTime, setStartTime] = useState(Date.now());
   const [showRomaji, setShowRomaji] = useState(false);
+  const [markedUnknown, setMarkedUnknown] = useState(false);
   const [message, setMessage] = useState("");
   const [lastUpdate, setLastUpdate] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -39,6 +40,7 @@ export function FlashcardEngine({ words }: Props) {
       setKnown(0);
       setUnknown(0);
       setFlipped(false);
+      setMarkedUnknown(false);
       setStartTime(Date.now());
     });
   }
@@ -65,10 +67,14 @@ export function FlashcardEngine({ words }: Props) {
         );
         setIndex((value) => value + 1);
         setFlipped(false);
+        setMarkedUnknown(false);
         return;
       }
 
-      setLastUpdate("Keep reviewing this card. Click Know when you're ready to continue.");
+      setMarkedUnknown(true);
+      setLastUpdate(
+        "Flip the card as many times as you need. Press Know when you have mastered this word.",
+      );
     });
   }
 
@@ -161,7 +167,11 @@ export function FlashcardEngine({ words }: Props) {
         )}
       </button>
       <div className="grid gap-3 sm:grid-cols-2">
-        <button className="button danger" disabled={isPending} onClick={() => answer("unknown")}>
+        <button
+          className="button danger"
+          disabled={isPending || markedUnknown}
+          onClick={() => answer("unknown")}
+        >
           Don&apos;t Know
         </button>
         <button className="button" disabled={isPending} onClick={() => answer("known")}>
