@@ -8,6 +8,7 @@ type Question = {
   id: string;
   word: string;
   reading: string;
+  romaji: string | null;
   correct: string;
   choices: string[];
   explanation: string | null;
@@ -35,6 +36,7 @@ function buildQuestions(words: Vocabulary[]): Question[] {
       id: word.id,
       word: word.word,
       reading: word.reading,
+      romaji: word.romaji,
       correct: word.meaning,
       choices: shuffle([word.meaning, ...distractors]),
       explanation: word.notes,
@@ -47,6 +49,7 @@ export function QuizEngine({ words }: { words: Vocabulary[] }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [selected, setSelected] = useState("");
+  const [showRomaji, setShowRomaji] = useState(false);
   const [startedAt, setStartedAt] = useState(Date.now());
   const [savedScore, setSavedScore] = useState<number | null>(null);
   const [message, setMessage] = useState("");
@@ -59,6 +62,7 @@ export function QuizEngine({ words }: { words: Vocabulary[] }) {
     setQuestionIndex(0);
     setAnswers([]);
     setSelected("");
+    setShowRomaji(false);
     setSavedScore(null);
     setMessage("");
     setStartedAt(Date.now());
@@ -76,6 +80,7 @@ export function QuizEngine({ words }: { words: Vocabulary[] }) {
     const nextAnswers = [...answers, answer];
     setAnswers(nextAnswers);
     setSelected("");
+    setShowRomaji(false);
 
     if (questionIndex + 1 < questions.length) {
       setQuestionIndex((value) => value + 1);
@@ -162,6 +167,16 @@ export function QuizEngine({ words }: { words: Vocabulary[] }) {
       <div>
         <h2 className="text-5xl font-black">{current.word}</h2>
         <p className="text-slate-500">{current.reading}</p>
+        {showRomaji && current.romaji ? <p className="text-slate-500">{current.romaji}</p> : null}
+        {current.romaji ? (
+          <button
+            className="mt-2 text-sm font-semibold text-blue-700"
+            onClick={() => setShowRomaji((value) => !value)}
+            type="button"
+          >
+            {showRomaji ? "Hide Romaji" : "Show Romaji"}
+          </button>
+        ) : null}
       </div>
       <div className="grid gap-3">
         {current.choices.map((choice) => {
