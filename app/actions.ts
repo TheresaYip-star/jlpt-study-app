@@ -19,6 +19,10 @@ async function writeAudit(action: string, targetTable: string, targetId: string 
   });
 }
 
+function isVocabularyDeletionEnabled() {
+  return false;
+}
+
 export async function saveVocabulary(formData: FormData): Promise<ActionResult<{ id: string }>> {
   const supabase = await getSupabase();
   if (!supabase) return { ok: false, error: "Supabase is not configured." };
@@ -50,7 +54,81 @@ export async function saveVocabulary(formData: FormData): Promise<ActionResult<{
   return { ok: true, data: { id: data.id } };
 }
 
+function getExampleSentencePayload(formData: FormData) {
+  return {
+    vocabulary_id: String(formData.get("vocabulary_id") ?? ""),
+    japanese: String(formData.get("japanese") ?? "").trim(),
+    reading: String(formData.get("reading") ?? "").trim(),
+    translation: String(formData.get("translation") ?? "").trim(),
+  };
+}
+
+async function validateExampleSentence(formData: FormData) {
+  const payload = getExampleSentencePayload(formData);
+  if (!payload.vocabulary_id || !payload.japanese || !payload.reading || !payload.translation) {
+    return { ok: false as const, error: "Japanese, reading, and translation are required." };
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false as const, error: "Supabase is not configured." };
+
+  const { data: vocabulary, error } = await supabase
+    .from("vocabulary")
+    .select("id")
+    .eq("id", payload.vocabulary_id)
+    .maybeSingle();
+  if (error) return { ok: false as const, error: error.message };
+  if (!vocabulary) return { ok: false as const, error: "The selected vocabulary word does not exist." };
+
+  return { ok: true as const, payload, supabase };
+}
+
+export async function addExampleSentence(
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+  const validated = await validateExampleSentence(formData);
+  if (!validated.ok) return validated;
+
+  const { data, error } = await validated.supabase
+    .from("example_sentences")
+    .insert(validated.payload)
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit("create_example_sentence", "example_sentences", data.id, validated.payload);
+  revalidatePath("/vocabulary");
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function editExampleSentence(
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Example sentence ID is required." };
+
+  const validated = await validateExampleSentence(formData);
+  if (!validated.ok) return validated;
+
+  const { data, error } = await validated.supabase
+    .from("example_sentences")
+    .update(validated.payload)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Example sentence does not exist." };
+
+  await writeAudit("update_example_sentence", "example_sentences", data.id, validated.payload);
+  revalidatePath("/vocabulary");
+  return { ok: true, data: { id: data.id } };
+}
+
 export async function deleteVocabulary(id: string): Promise<ActionResult<{ id: string }>> {
+  if (!isVocabularyDeletionEnabled()) {
+    return { ok: false, error: "Vocabulary deletion is temporarily unavailable." };
+  }
+
   const supabase = await getSupabase();
   if (!supabase) return { ok: false, error: "Supabase is not configured." };
 

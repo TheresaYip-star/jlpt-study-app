@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { deleteVocabulary, saveVocabulary } from "@/app/actions";
+import {
+  addExampleSentence,
+  deleteVocabulary,
+  editExampleSentence,
+  saveVocabulary,
+} from "@/app/actions";
 import type { ExampleSentence, Vocabulary } from "@/lib/study-types";
 
 type Props = {
@@ -19,13 +24,22 @@ const emptyForm = {
   notes: "",
 };
 
+const emptyExampleForm = {
+  id: "",
+  japanese: "",
+  reading: "",
+  translation: "",
+};
+
 export function VocabularyBrowser({ words, examples }: Props) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Vocabulary | null>(words[0] ?? null);
   const [form, setForm] = useState(emptyForm);
+  const [exampleForm, setExampleForm] = useState(emptyExampleForm);
   const [showFurigana, setShowFurigana] = useState(true);
   const [showRomaji, setShowRomaji] = useState(false);
   const [message, setMessage] = useState("");
+  const [exampleMessage, setExampleMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -41,6 +55,12 @@ export function VocabularyBrowser({ words, examples }: Props) {
 
   const selectedExamples = examples.filter((example) => example.vocabulary_id === selected?.id);
 
+  function selectWord(word: Vocabulary) {
+    setSelected(word);
+    setExampleForm(emptyExampleForm);
+    setExampleMessage("");
+  }
+
   function editWord(word: Vocabulary) {
     setSelected(word);
     setForm({
@@ -53,6 +73,28 @@ export function VocabularyBrowser({ words, examples }: Props) {
       notes: word.notes ?? "",
     });
     setMessage("");
+  }
+
+  function editExample(example: ExampleSentence) {
+    setExampleForm({
+      id: example.id,
+      japanese: example.japanese,
+      reading: example.reading,
+      translation: example.translation,
+    });
+    setExampleMessage("");
+  }
+
+  function submitExample(formData: FormData) {
+    if (!selected) return;
+    setExampleMessage("");
+    startTransition(async () => {
+      const result = exampleForm.id
+        ? await editExampleSentence(formData)
+        : await addExampleSentence(formData);
+      setExampleMessage(result.ok ? "Example sentence saved." : result.error);
+      if (result.ok) setExampleForm(emptyExampleForm);
+    });
   }
 
   function submit(formData: FormData) {
@@ -123,7 +165,7 @@ export function VocabularyBrowser({ words, examples }: Props) {
               <button
                 className="panel cursor-pointer text-left transition hover:border-blue-300 hover:shadow-sm"
                 key={word.id}
-                onClick={() => setSelected(word)}
+                onClick={() => selectWord(word)}
               >
                 <span className="block text-3xl font-bold">{word.word}</span>
                 {showFurigana ? (
@@ -163,22 +205,94 @@ export function VocabularyBrowser({ words, examples }: Props) {
                   <p className="text-sm text-slate-500">No examples yet.</p>
                 ) : (
                   selectedExamples.map((example) => (
-                    <div className="rounded-lg bg-slate-50 p-3" key={example.id}>
+                    <div className="space-y-2 rounded-lg bg-slate-50 p-3" key={example.id}>
                       <p className="font-semibold">{example.japanese}</p>
                       <p className="text-sm text-slate-500">{example.reading}</p>
                       <p className="text-sm">{example.translation}</p>
+                      {exampleForm.id !== example.id ? (
+                        <button
+                          className="button secondary !border !border-slate-300 !bg-white hover:!bg-slate-100 active:!bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                          onClick={() => editExample(example)}
+                          type="button"
+                        >
+                          Edit example
+                        </button>
+                      ) : null}
                     </div>
                   ))
                 )}
               </div>
+              <form action={submitExample} className="space-y-3 rounded-lg border border-slate-200 p-3">
+                <h3 className="font-bold">
+                  {exampleForm.id ? "Edit example sentence" : "Add example sentence"}
+                </h3>
+                <input name="id" type="hidden" value={exampleForm.id} />
+                <input name="vocabulary_id" type="hidden" value={selected.id} />
+                <textarea
+                  className="input min-h-20"
+                  name="japanese"
+                  onChange={(event) =>
+                    setExampleForm({ ...exampleForm, japanese: event.target.value })
+                  }
+                  placeholder="Japanese sentence"
+                  required
+                  value={exampleForm.japanese}
+                />
+                <input
+                  className="input"
+                  name="reading"
+                  onChange={(event) =>
+                    setExampleForm({ ...exampleForm, reading: event.target.value })
+                  }
+                  placeholder="Reading"
+                  required
+                  value={exampleForm.reading}
+                />
+                <textarea
+                  className="input min-h-20"
+                  name="translation"
+                  onChange={(event) =>
+                    setExampleForm({ ...exampleForm, translation: event.target.value })
+                  }
+                  placeholder="English translation"
+                  required
+                  value={exampleForm.translation}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button className="button" disabled={isPending}>
+                    Save example
+                  </button>
+                  {exampleForm.id ? (
+                    <button
+                      className="button secondary !border !border-slate-300 !bg-white hover:!bg-slate-100 active:!bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                      onClick={() => setExampleForm(emptyExampleForm)}
+                      type="button"
+                    >
+                      Cancel edit
+                    </button>
+                  ) : null}
+                </div>
+                {exampleMessage ? (
+                  <p className="text-sm font-semibold text-blue-700">{exampleMessage}</p>
+                ) : null}
+              </form>
               <div className="flex gap-2">
                 <button className="button secondary" onClick={() => editWord(selected)}>
                   Edit
                 </button>
-                <button className="button danger" disabled={isPending} onClick={removeSelected}>
+                <button
+                  className="button danger"
+                  disabled
+                  onClick={removeSelected}
+                  title="Vocabulary deletion is temporarily unavailable."
+                  type="button"
+                >
                   Delete
                 </button>
               </div>
+              <p className="text-sm text-slate-500">
+                Vocabulary deletion is temporarily unavailable.
+              </p>
             </div>
           ) : (
             <p className="mt-3 text-slate-500">Choose a vocabulary card.</p>
