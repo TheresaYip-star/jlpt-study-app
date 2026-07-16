@@ -19,8 +19,8 @@ export type ExampleSentence = {
 
 export type ProgressStats = {
   wordsStudied: number;
-  cardsKnown: number;
-  cardsUnknown: number;
+  vocabularyCount: number;
+  completed: number;
   quizzesTaken: number;
   averageScore: number;
   studiedToday: number;

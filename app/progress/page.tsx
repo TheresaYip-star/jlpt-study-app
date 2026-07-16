@@ -1,19 +1,26 @@
 import { getProgressStats } from "@/lib/study-data";
+import { RefreshButton } from "@/app/progress/RefreshButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProgressPage() {
   const stats = await getProgressStats();
-  const goalPercent = Math.min(100, Math.round((stats.studiedToday / stats.dailyGoal) * 100));
+  const goalPercent =
+    stats.dailyGoal > 0
+      ? Math.min(100, Math.round((stats.studiedToday / stats.dailyGoal) * 100))
+      : 0;
 
   return (
     <main className="page space-y-6">
-      <div>
-        <p className="font-semibold text-blue-700">Server-derived progress</p>
-        <h1 className="section-title">Your study record.</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-semibold text-blue-700">Server-derived progress</p>
+          <h1 className="section-title">Your study record.</h1>
+        </div>
+        <RefreshButton />
       </div>
 
-      {stats.wordsStudied === 0 && stats.quizzesTaken === 0 ? (
+      {stats.vocabularyCount === 0 && stats.quizzesTaken === 0 ? (
         <section className="panel max-w-2xl space-y-4">
           <h2 className="text-2xl font-bold">Start studying to see your progress here.</h2>
           <a className="button" href="/flashcards">
@@ -24,14 +31,12 @@ export default async function ProgressPage() {
         <>
           <section className="grid-cards">
             <div className="stat">
-              <span className="text-sm text-slate-500">Words studied</span>
-              <strong>{stats.wordsStudied}</strong>
+              <span className="text-sm text-slate-500">Vocabulary</span>
+              <strong>{stats.vocabularyCount}</strong>
             </div>
             <div className="stat">
-              <span className="text-sm text-slate-500">Known / review</span>
-              <strong>
-                {stats.cardsKnown}/{stats.cardsUnknown}
-              </strong>
+              <span className="text-sm text-slate-500">Completed</span>
+              <strong>{stats.completed}</strong>
             </div>
             <div className="stat">
               <span className="text-sm text-slate-500">Quizzes taken</span>
@@ -50,6 +55,7 @@ export default async function ProgressPage() {
                 <p className="text-slate-600">
                   Studied {stats.studiedToday} / {stats.dailyGoal} cards today
                 </p>
+                <p className="text-sm text-slate-500">Today is currently measured in UTC.</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-semibold text-slate-500">Streak</p>
